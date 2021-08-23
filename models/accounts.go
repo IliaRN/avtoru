@@ -1,10 +1,10 @@
 package models
 
 import (
-	"github.com/dgrijalva/jwt-go"
-	"github.com/jinzhu/gorm"
 	u "avtoru/utils"
+	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 	"os"
 	"strings"
 )
@@ -108,7 +108,7 @@ func Login(email, password string) (map[string]interface{}) {
 	return resp
 }
 
-func GetUser(u uint) *Account {
+func GetAccountById(u uint) *Account {
 
 	acc := &Account{}
 	GetDB().Table("accounts").Where("id = ?", u).First(acc)
@@ -118,4 +118,19 @@ func GetUser(u uint) *Account {
 
 	acc.Password = ""
 	return acc
+}
+
+func GetAccountByCredentials(email, password string) *Account {
+	account := &Account{}
+	err := GetDB().Table("accounts").Where("email = ?", email).First(account).Error
+	if err != nil {
+		return nil
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password))
+	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword { //Password does not match!
+		return nil
+	}
+
+	return account
 }
