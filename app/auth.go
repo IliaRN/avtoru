@@ -15,8 +15,8 @@ var JwtAuthentication = func(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		notAuth := []string{"/api/user/new", "/api/user/login", "/api/announcements", "/api/announcement"} //List of endpoints that doesn't require auth
-		requestPath := r.URL.Path                                                                          //current request path
+		notAuth := []string{"POST:/api/user/new", "POST:/api/user/login", "GET:/api/announcements", "GET:/api/announcement"} //List of endpoints that doesn't require auth
+		requestPath := r.Method + ":" + r.URL.Path                                                                           //current request path
 
 		//check if request does not need authentication, serve the request if it doesn't need it
 		for _, value := range notAuth {
@@ -71,8 +71,8 @@ var JwtAuthentication = func(next http.Handler) http.Handler {
 		}
 
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
-		fmt.Sprintf("User %", tk.UserId) //Useful for monitoring
-		ctx := context.WithValue(r.Context(), "user", tk.UserId)
+		fmt.Sprintf("User %", tk.UserID) //Useful for monitoring
+		ctx := context.WithValue(r.Context(), "user", tk.UserID)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r) //proceed in the middleware chain!
 	})

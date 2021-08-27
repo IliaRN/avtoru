@@ -1,18 +1,16 @@
 package models
 
-import (
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 type Announce struct {
-	AccountId   uint
+	gorm.Model
+	AccountID   uint
+	Account     Account
 	Name        string
 	Description string
-	gorm.Model
-	CategoryId uint
-	BrandId    uint
-	AutoId     uint
-	Price      float64
+	AutoID      uint
+	Auto        Auto
+	Price       float64
 }
 
 type UpdAnounce struct {
@@ -32,13 +30,14 @@ func (a *Announce) UpdAn(announce Announce) *Announce {
 
 func GetAnnById(u uint) *Announce {
 	ann := &Announce{}
-	GetDB().Table("announces").Where("id = ?", u).First(ann)
+	//GetDB().Table("announces").Where("id = ?", u).First(ann)
+	GetDB().Preload("Account").Find(ann, "id = ?", u)
 	return ann
 }
 
 func GetAnns() []Announce {
 	announcements := []Announce{}
-	GetDB().Find(&announcements)
+	GetDB().Preload("Account").Find(&announcements)
 	return announcements
 }
 func (a *Announce) DelAn(u uint) bool {
