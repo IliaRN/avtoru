@@ -20,9 +20,11 @@ type Token struct {
 //a struct to rep user account
 type Account struct {
 	gorm.Model
+
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Token    string `json:"token";sql:"-"`
+	rights   bool
 }
 
 //Validate incoming user details...
@@ -51,7 +53,7 @@ func (account *Account) Validate() (map[string]interface{}, bool) {
 	return u.Message(false, "Requirement passed"), true
 }
 
-func (account *Account) Create() (map[string]interface{}) {
+func (account *Account) Create() map[string]interface{} {
 
 	if resp, ok := account.Validate(); !ok {
 		return resp
@@ -79,7 +81,7 @@ func (account *Account) Create() (map[string]interface{}) {
 	return response
 }
 
-func Login(email, password string) (map[string]interface{}) {
+func Login(email, password string) map[string]interface{} {
 
 	account := &Account{}
 	err := GetDB().Table("accounts").Where("email = ?", email).First(account).Error

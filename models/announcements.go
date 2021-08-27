@@ -4,16 +4,20 @@ import (
 	"gorm.io/gorm"
 )
 
-
 type Announce struct {
-	AccountId uint
-	Name string
+	AccountId   uint
+	Name        string
 	Description string
 	gorm.Model
 	CategoryId uint
-	BrandId uint
-	AutoId uint
-	Price float64
+	BrandId    uint
+	AutoId     uint
+	Price      float64
+}
+
+type UpdAnounce struct {
+	Name        string
+	Description string
 }
 
 func (a *Announce) AddAn() *Announce {
@@ -21,17 +25,27 @@ func (a *Announce) AddAn() *Announce {
 	return a
 }
 
-func (a *Announce) DelAn() {
-	GetDB().Delete(a)
-}
-
 func (a *Announce) UpdAn(announce Announce) *Announce {
 	GetDB().Model(a).Updates(announce)
 	return a
 }
 
-func GetAnn() []Announce {
+func GetAnnById(u uint) *Announce {
+	ann := &Announce{}
+	GetDB().Table("announces").Where("id = ?", u).First(ann)
+	return ann
+}
+
+func GetAnns() []Announce {
 	announcements := []Announce{}
 	GetDB().Find(&announcements)
 	return announcements
+}
+func (a *Announce) DelAn(u uint) bool {
+	//GetDB().Delete(a)
+	//ann := &Announce{}
+	ann := GetAnnById(u)
+	GetDB().Delete(&Announce{}, u).First(ann) //.Table("announces").Where("id = ?", u).First(ann)
+	return true
+
 }
