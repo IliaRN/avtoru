@@ -9,7 +9,6 @@ import (
 )
 
 var CreateAccount = func(w http.ResponseWriter, r *http.Request) {
-
 	account := &models.Account{}
 	err := json.NewDecoder(r.Body).Decode(account) //decode the request body into struct and failed if any error occur
 	if err != nil {
@@ -40,7 +39,7 @@ var GetAccount = func(w http.ResponseWriter, r *http.Request) {
 	accountModel := models.GetAccountById(accountId)
 	resp := u.Message(true, "Success")
 	resp["data"] = map[string]interface{}{
-		"id": accountModel.ID,
+		"id":         accountModel.ID,
 		"created_at": accountModel.CreatedAt,
 		"updated_at": accountModel.UpdatedAt,
 	}

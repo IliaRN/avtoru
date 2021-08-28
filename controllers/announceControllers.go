@@ -10,11 +10,13 @@ import (
 )
 
 var GetAnnById = func(w http.ResponseWriter, r *http.Request) {
-	id, ok := r.URL.Query()["id"]
-	if !ok || len(id[0]) < 1 {
-		u.Respond(w, u.Message(false, "ID is missing in URL string"))
+	//id, ok := r.URL.Query()["id"]
+	id := r.FormValue("id")
+	if len(id) < 1 {
+		http.Error(w, "ID is missing in URL string", 422)
+		return
 	}
-	id_conv, _ := strconv.ParseUint(id[0], 10, 32)
+	id_conv, _ := strconv.ParseUint(id, 10, 32)
 	announcementModel := models.GetAnnById(uint(id_conv))
 	resp := u.Message(true, "Success")
 	resp["data"] = announcementModel
