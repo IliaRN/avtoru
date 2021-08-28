@@ -13,11 +13,6 @@ type Announce struct {
 	Price       float64
 }
 
-type UpdAnounce struct {
-	Name        string
-	Description string
-}
-
 func (a *Announce) AddAn() *Announce {
 	GetDB().Create(a)
 	return a

@@ -73,3 +73,21 @@ var DelAn = func(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]interface{}{"Message": "The announcement was deleted", "result": result}
 	u.Respond(w, resp)
 }
+
+var UpdAn = func(w http.ResponseWriter, r *http.Request) {
+
+	announcement := &models.Announce{}
+	err := json.NewDecoder(r.Body).Decode(announcement)
+	if err != nil {
+		fmt.Println(err.Error())
+		u.Respond(w, u.Message(false, "Required field filled incorrectly"))
+		return
+	}
+	annToUpd := models.GetAnnById(announcement.ID)
+	annToUpd.Description = announcement.Description
+	annToUpd.Name = announcement.Name
+	result := announcement.UpdAn(*annToUpd)
+	resp := map[string]interface{}{"Message": "The announcement was updated", "result": result}
+	u.Respond(w, resp)
+
+}
