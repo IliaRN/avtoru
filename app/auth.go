@@ -71,15 +71,15 @@ func JwtAuthentication(next http.Handler) http.Handler {
 		}
 
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
-		fmt.Sprintf("User %", tk.UserEmail) //Useful for monitoring
-		mail := &models.Account{}
-		models.GetDB().Find(mail, "email = ?", tk.UserEmail)
-		if len(mail.Email) == 0 {
+
+		acc := &models.Account{}
+		models.GetDB().Find(acc, "email = ?", tk.UserEmail)
+		if len(acc.Email) == 0 {
 			response = u.Message(false, "Account not found")
 			u.Respond(w, response)
 			return
 		}
-		ctx := context.WithValue(r.Context(), "user", mail.ID)
+		ctx := context.WithValue(r.Context(), "user", acc.ID)
 
 		r = r.WithContext(ctx)
 

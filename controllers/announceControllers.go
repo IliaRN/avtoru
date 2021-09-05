@@ -48,7 +48,6 @@ var GetAnns = func(w http.ResponseWriter, r *http.Request) {
 var AddAn = func(w http.ResponseWriter, r *http.Request) {
 	accountId := r.Context().Value("user").(uint)
 	announcement := &models.Announce{}
-	announcement.AccountID = accountId
 	auto := &models.Auto{}
 	err := json.NewDecoder(r.Body).Decode(announcement) //decode the request body into struct and failed if any error occur
 	if err != nil {
@@ -62,7 +61,7 @@ var AddAn = func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Name is required field", 422)
 		return
 	}
-	if announcement.Price == 0 {
+	if announcement.Price <= 0 {
 		http.Error(w, "Price is required field", 422)
 		return
 	}
@@ -70,19 +69,19 @@ var AddAn = func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Description is empty but it's ok")
 	}
 
-	if announcement.Auto.Year == 0 {
+	if announcement.Auto.Year <= 0 {
 		http.Error(w, "Year is required field", 422)
 		return
 	} else {
 		auto.Year = announcement.Auto.Year
 	}
-	if announcement.Auto.Mileage == 0 {
+	if announcement.Auto.Mileage <= 0 {
 		http.Error(w, "Mileage is required field", 422)
 		return
 	} else {
 		auto.Mileage = announcement.Auto.Mileage
 	}
-	if announcement.Auto.ModelID == 0 {
+	if announcement.Auto.ModelID <= 0 {
 		http.Error(w, "ModelID is required field", 422)
 		return
 	} else {

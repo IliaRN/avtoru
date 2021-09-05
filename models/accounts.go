@@ -24,7 +24,6 @@ type Account struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Token    string `gorm:"-"`
-	IsAdmin  bool
 }
 
 //Validate incoming user details...
@@ -70,17 +69,14 @@ func (account *Account) Create() map[string]interface{} {
 
 	//Create new JWT token for the newly registered account
 	ttl := time.Now().Add(5 * time.Hour).Unix()
-	//tk := &Token{
-	//	UserEmail: account.Email,
-	//	ExpiresAt: ttl,
-	//}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Token{
 		account.Email, jwt.StandardClaims{
 			ExpiresAt: ttl,
 			IssuedAt:  time.Now().Unix(),
 		},
 	})
-	//token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+
 	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
 	account.Token = tokenString
 
@@ -140,19 +136,4 @@ func GetAccountById(u uint) *Account {
 
 	acc.Password = ""
 	return acc
-}
-
-func GetAccountByCredentials(email, password string) *Account {
-	account := &Account{}
-	err := GetDB().Table("accounts").Where("email = ?", email).First(account).Error
-	if err != nil {
-		return nil
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password))
-	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword { //Password does not match!
-		return nil
-	}
-
-	return account
 }
