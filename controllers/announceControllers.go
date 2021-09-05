@@ -21,6 +21,11 @@ var GetAnnById = func(w http.ResponseWriter, r *http.Request) {
 	}
 	id_conv, _ := strconv.ParseUint(id, 10, 32)
 	announcementModel := models.GetAnnById(uint(id_conv))
+	compare := announcementModel.AccountID
+	if compare <= 0 {
+		u.Respond(w, u.Message(false, "Announcement not found"))
+		return
+	}
 	resp := u.Message(true, "Success")
 	resp["data"] = announcementModel
 	u.Respond(w, resp)
@@ -98,18 +103,22 @@ var DelAn = func(w http.ResponseWriter, r *http.Request) {
 	if !ok || len(id[0]) < 1 {
 		u.Respond(w, u.Message(false, "ID is missing in URL string"))
 	}
-	announcement := &models.Announce{}
+
 	id_conv, _ := strconv.ParseUint(id[0], 10, 32)
 	announcementModel := models.GetAnnById(uint(id_conv))
 	compare := announcementModel.AccountID
 	accountId := r.Context().Value("user").(uint)
 	log.Println(r.Context()) //
+	if compare <= 0 {
+		u.Respond(w, u.Message(false, "Announcement not found"))
+		return
+	}
 	if accountId != compare {
 		u.Respond(w, u.Message(false, "Access denied"))
 		return
 	}
 
-	result := announcement.DelAn(announcement.ID)
+	result := announcementModel.DelAn(announcementModel.ID)
 
 	resp := map[string]interface{}{"Message": "The announcement was deleted", "result": result}
 	u.Respond(w, resp)
@@ -125,6 +134,10 @@ var UpdAn = func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	annToUpd := models.GetAnnById(announcement.ID)
+	if annToUpd.ID <= 0 {
+		u.Respond(w, u.Message(false, "Announcement not found"))
+		return
+	}
 	if accountId != annToUpd.AccountID {
 		u.Respond(w, u.Message(false, "Access denied"))
 		return

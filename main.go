@@ -25,13 +25,13 @@ func main() {
 		http.MethodGet: controllers.GetAccount,
 	})
 	app.AddRoute("/api/announcement", map[string]func(w http.ResponseWriter, r *http.Request){
-		http.MethodGet:    controllers.GetAnns,
 		http.MethodDelete: controllers.DelAn,
 		http.MethodPut:    controllers.UpdAn,
 		http.MethodPost:   controllers.AddAn,
+		http.MethodGet:    controllers.GetAnnById,
 	})
-	app.AddRoute("/api/announcement/{id}", map[string]func(w http.ResponseWriter, r *http.Request){
-		http.MethodGet: controllers.GetAnnById,
+	app.AddRoute("/api/announcements/", map[string]func(w http.ResponseWriter, r *http.Request){
+		http.MethodGet: controllers.GetAnns,
 	})
 
 	//router.HandleFunc("/api/user/new", controllers.CreateAccount).Methods("POST")
