@@ -15,12 +15,11 @@ func JwtAuthentication(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		notAuth := []string{"POST:/api/user/new", "POST:/api/user/login", "GET:/api/announcements", "GET:/api/announcement"} //List of endpoints that doesn't require auth
-		requestPath := r.Method + ":" + r.URL.Path                                                                           //current request path
+		notAuth := []string{"POST:/api/user/new", "POST:/api/user/login"} //List of endpoints that doesn't require auth
+		requestPath := r.Method + ":" + r.URL.Path                        //current request path
 
 		//check if request does not need authentication, serve the request if it doesn't need it
 		for _, value := range notAuth {
-
 			if value == requestPath {
 				next.ServeHTTP(w, r)
 				return
@@ -55,6 +54,7 @@ func JwtAuthentication(next http.Handler) http.Handler {
 		})
 
 		if err != nil { //Malformed token, returns with http code 403 as usual
+			fmt.Println(err.Error())
 			response = u.Message(false, "Malformed authentication token")
 			w.WriteHeader(http.StatusForbidden)
 			w.Header().Add("Content-Type", "application/json")
@@ -71,9 +71,18 @@ func JwtAuthentication(next http.Handler) http.Handler {
 		}
 
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
-		fmt.Sprintf("User %", tk.UserID) //Useful for monitoring
-		ctx := context.WithValue(r.Context(), "user", tk.UserID)
+		fmt.Sprintf("User %", tk.UserEmail) //Useful for monitoring
+		mail := &models.Account{}
+		models.GetDB().Find(mail, "email = ?", tk.UserEmail)
+		if len(mail.Email) == 0 {
+			response = u.Message(false, "Account not found")
+			u.Respond(w, response)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "user", mail.ID)
+
 		r = r.WithContext(ctx)
+
 		next.ServeHTTP(w, r) //proceed in the middleware chain!
 	})
 }

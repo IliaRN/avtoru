@@ -1,10 +1,10 @@
-package seeds
+package seed
 
 import (
 	"avtoru/models"
 )
 
-func main() {
+func seed() {
 	db := models.GetDB()
 
 	var brands = []string{"BMW", "Lada", "Hyundai", "Audi"}
@@ -18,6 +18,10 @@ func main() {
 	}
 
 	var colors = []string{"Red", "White", "Black"}
+	for _, color := range colors {
+		db.Create(&models.Color{Name: color})
+	}
+	var autos = []string{"Red", "White", "Black"}
 	for _, color := range colors {
 		db.Create(&models.Color{Name: color})
 	}

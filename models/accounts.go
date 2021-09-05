@@ -7,13 +7,14 @@ import (
 	"gorm.io/gorm"
 	"os"
 	"strings"
+	"time"
 )
 
 /*
 JWT claims struct
 */
 type Token struct {
-	UserID uint
+	UserEmail string
 	jwt.StandardClaims
 }
 
@@ -22,7 +23,7 @@ type Account struct {
 	gorm.Model
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	Token    string `json:"token";sql:"-"`
+	Token    string `gorm:"-"`
 	IsAdmin  bool
 }
 
@@ -68,8 +69,18 @@ func (account *Account) Create() map[string]interface{} {
 	}
 
 	//Create new JWT token for the newly registered account
-	tk := &Token{UserID: account.ID}
-	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+	ttl := time.Now().Add(5 * time.Hour).Unix()
+	//tk := &Token{
+	//	UserEmail: account.Email,
+	//	ExpiresAt: ttl,
+	//}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Token{
+		account.Email, jwt.StandardClaims{
+			ExpiresAt: ttl,
+			IssuedAt:  time.Now().Unix(),
+		},
+	})
+	//token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
 	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
 	account.Token = tokenString
 
@@ -92,15 +103,25 @@ func Login(email, password string) map[string]interface{} {
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password))
-	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword { //Password does not match!
-		return u.Message(false, "Invalid login credentials. Please try again")
+	if err != nil {
+		if err == bcrypt.ErrMismatchedHashAndPassword { //Password does not match!
+			return u.Message(false, "Invalid login credentials. Please try again")
+		}
+		return u.Message(false, "Internal server error")
 	}
 	//Worked! Logged In
 	account.Password = ""
 
 	//Create JWT token
-	tk := &Token{UserID: account.ID}
-	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+	//tk := &Token{UserEmail: account.Email}
+	ttl := time.Now().Add(5 * time.Hour).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Token{
+		account.Email, jwt.StandardClaims{
+			ExpiresAt: ttl,
+			IssuedAt:  time.Now().Unix(),
+		},
+	})
+	//token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
 	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
 	account.Token = tokenString //Store the token in the response
 
