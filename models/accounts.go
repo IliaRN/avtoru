@@ -1,10 +1,11 @@
 package models
 
 import (
-	u "avtoru/utils"
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -27,14 +28,14 @@ type Account struct {
 }
 
 //Validate incoming user details...
-func (account *Account) Validate() (map[string]interface{}, bool) {
+func (account *Account) Validate() (int, error) {
 
 	if !strings.Contains(account.Email, "@") {
-		return u.Message(false, "Email address is required"), false
+		return http.StatusBadRequest, errors.New("email address is required")
 	}
 
 	if len(account.Password) < 6 {
-		return u.Message(false, "Password is required"), false
+		return http.StatusBadRequest, errors.New("password is required")
 	}
 
 	//Email must be unique
@@ -43,19 +44,19 @@ func (account *Account) Validate() (map[string]interface{}, bool) {
 	//check for errors and duplicate emails
 	err := GetDB().Table("accounts").Where("email = ?", account.Email).First(temp).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return u.Message(false, "Connection error. Please retry"), false
+		return http.StatusInternalServerError, errors.New("connection error")
 	}
 	if temp.Email != "" {
-		return u.Message(false, "Email address already in use by another user."), false
+		return http.StatusBadRequest, errors.New("email address is used by another user")
 	}
 
-	return u.Message(false, "Requirement passed"), true
+	return http.StatusOK, nil
 }
 
-func (account *Account) Create() map[string]interface{} {
+func (account *Account) Create() (int, error) {
 
-	if resp, ok := account.Validate(); !ok {
-		return resp
+	if status, err := account.Validate(); err != nil {
+		return status, err
 	}
 
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(account.Password), bcrypt.DefaultCost)
@@ -64,53 +65,52 @@ func (account *Account) Create() map[string]interface{} {
 	GetDB().Create(account)
 
 	if account.ID <= 0 {
-		return u.Message(false, "Failed to create account, connection error.")
+		return http.StatusInternalServerError, errors.New("failed to connect to the server")
 	}
 
 	//Create new JWT token for the newly registered account
-	ttl := time.Now().Add(5 * time.Hour).Unix()
+	//ttl := time.Now().Add(5 * time.Minute).Unix()
+	//
+	//token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Token{
+	//	account.Email, jwt.StandardClaims{
+	//		ExpiresAt: ttl,
+	//		IssuedAt:  time.Now().Unix(),
+	//	},
+	//})
+	//
+	//tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
+	//account.Token = tokenString
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Token{
-		account.Email, jwt.StandardClaims{
-			ExpiresAt: ttl,
-			IssuedAt:  time.Now().Unix(),
-		},
-	})
+	//account.Password = "" //delete password
 
-	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
-	account.Token = tokenString
-
-	account.Password = "" //delete password
-
-	response := u.Message(true, "Account has been created")
-	response["account"] = account
-	return response
+	return http.StatusOK, nil
 }
 
-func Login(email, password string) map[string]interface{} {
+func Login(email, password string) (string, error, int) {
 
 	account := &Account{}
 	err := GetDB().Table("accounts").Where("email = ?", email).First(account).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return u.Message(false, "Email address not found")
+			return "", errors.New("email address not found"), http.StatusNotFound
+
 		}
-		return u.Message(false, "Connection error. Please retry")
+		return "", errors.New("connection error. please retry"), http.StatusInternalServerError
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password))
 	if err != nil {
 		if err == bcrypt.ErrMismatchedHashAndPassword { //Password does not match!
-			return u.Message(false, "Invalid login credentials. Please try again")
+			return "", errors.New("invalid login credentials. please try again"), http.StatusBadRequest
 		}
-		return u.Message(false, "Internal server error")
+		return "", errors.New("internal server error"), http.StatusInternalServerError
 	}
 	//Worked! Logged In
 	account.Password = ""
 
 	//Create JWT token
 	//tk := &Token{UserEmail: account.Email}
-	ttl := time.Now().Add(5 * time.Hour).Unix()
+	ttl := time.Now().Add(30 * time.Second).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &Token{
 		account.Email, jwt.StandardClaims{
 			ExpiresAt: ttl,
@@ -119,11 +119,7 @@ func Login(email, password string) map[string]interface{} {
 	})
 	//token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
 	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
-	account.Token = tokenString //Store the token in the response
-
-	resp := u.Message(true, "Logged In")
-	resp["account"] = account
-	return resp
+	return tokenString, nil, http.StatusOK
 }
 
 func GetAccountById(u uint) *Account {

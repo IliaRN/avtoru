@@ -2,9 +2,7 @@ package app
 
 import (
 	"avtoru/models"
-	u "avtoru/utils"
 	"context"
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"os"
@@ -26,23 +24,16 @@ func JwtAuthentication(next http.Handler) http.Handler {
 			}
 		}
 
-		response := make(map[string]interface{})
 		tokenHeader := r.Header.Get("Authorization") //Grab the token from the header
 
 		if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
-			response = u.Message(false, "Missing auth token")
-			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type", "application/json")
-			u.Respond(w, response)
+			http.Error(w, "Token is missing", http.StatusUnauthorized)
 			return
 		}
 
 		splitted := strings.Split(tokenHeader, " ") //The token normally comes in format `Bearer {token-body}`, we check if the retrieved token matched this requirement
 		if len(splitted) != 2 {
-			response = u.Message(false, "Invalid/Malformed auth token")
-			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type", "application/json")
-			u.Respond(w, response)
+			http.Error(w, "Wrong token format", http.StatusUnauthorized)
 			return
 		}
 
@@ -54,19 +45,12 @@ func JwtAuthentication(next http.Handler) http.Handler {
 		})
 
 		if err != nil { //Malformed token, returns with http code 403 as usual
-			fmt.Println(err.Error())
-			response = u.Message(false, "Malformed authentication token")
-			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type", "application/json")
-			u.Respond(w, response)
+			http.Error(w, "Malformed auth token", http.StatusUnauthorized)
 			return
 		}
 
 		if !token.Valid { //Token is invalid, maybe not signed on this server
-			response = u.Message(false, "Token is not valid.")
-			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type", "application/json")
-			u.Respond(w, response)
+			http.Error(w, "Malformed auth token", http.StatusUnauthorized)
 			return
 		}
 
@@ -75,8 +59,7 @@ func JwtAuthentication(next http.Handler) http.Handler {
 		acc := &models.Account{}
 		models.GetDB().Find(acc, "email = ?", tk.UserEmail)
 		if len(acc.Email) == 0 {
-			response = u.Message(false, "Account not found")
-			u.Respond(w, response)
+			http.Error(w, "Account not found", http.StatusNotFound)
 			return
 		}
 		ctx := context.WithValue(r.Context(), "user", acc.ID)
